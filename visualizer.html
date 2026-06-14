@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Scheduling Visualizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            background: #f5f7fa;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #2c3e50;
+            border-left: 6px solid #3498db;
+            padding-left: 15px;
+        }
+        .job-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .job {
+            background: #ecf0f1;
+            padding: 8px 15px;
+            border-radius: 24px;
+            font-size: 14px;
+        }
+        .job span {
+            font-weight: bold;
+            color: #2980b9;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .timeline {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: inset 0 0 0 1px #e2e8f0;
+        }
+        .slot-row {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            gap: 15px;
+        }
+        .slot-label {
+            width: 60px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .slot-bar {
+            flex: 1;
+            height: 48px;
+            background: #edf2f7;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .slot-bar.filled {
+            background: #9b59b6;
+            color: white;
+            box-shadow: 0 2px 6px rgba(155,89,182,0.3);
+        }
+        .result {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        hr {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>🎯 Job Scheduling (Maximise Reward)</h2>
+    <p>Jobs: <strong>(deadline, reward)</strong> – Greedy by reward descending, assign to latest free slot.</p>
+    
+    <div class="job-list" id="jobList"></div>
+    <button id="scheduleBtn">▶ Run Scheduling</button>
+    
+    <div class="timeline" id="timeline"></div>
+    
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+    // Example jobs – exactly the same as your Python example
+    const jobs = [
+        { deadline: 2, reward: 100 },
+        { deadline: 1, reward: 50 },
+        { deadline: 2, reward: 80 },
+        { deadline: 1, reward: 30 }
+    ];
+
+    function displayJobList() {
+        const container = document.getElementById('jobList');
+        container.innerHTML = '<strong>📋 Input Jobs:</strong> ';
+        jobs.forEach(job => {
+            const div = document.createElement('div');
+            div.className = 'job';
+            div.innerHTML = `(d=<span>${job.deadline}</span>, r=<span>${job.reward}</span>)`;
+            container.appendChild(div);
+        });
+    }
+
+    function scheduleJobs(jobsArray) {
+        // 1. Sort by reward descending (same as Python)
+        const sorted = [...jobsArray].sort((a,b) => b.reward - a.reward);
+        
+        // 2. Find max deadline
+        const maxDeadline = Math.max(...jobsArray.map(j => j.deadline));
+        
+        // 3. Slots array: -1 = free, otherwise store reward
+        const slots = new Array(maxDeadline + 1).fill(-1);
+        let totalReward = 0;
+        const selected = [];
+        
+        for (let job of sorted) {
+            // try to assign to latest free slot <= deadline
+            for (let t = job.deadline; t >= 1; t--) {
+                if (slots[t] === -1) {
+                    slots[t] = job.reward;
+                    totalReward += job.reward;
+                    selected.push({ deadline: job.deadline, reward: job.reward, slot: t });
+                    break;
+                }
+            }
+        }
+        return { slots, totalReward, selected, maxDeadline };
+    }
+
+    function renderTimeline(slots, maxDeadline, selected) {
+        const timelineDiv = document.getElementById('timeline');
+        timelineDiv.innerHTML = '<h3>📅 Scheduled Timeline (time slots 1..' + maxDeadline + ')</h3>';
+        
+        for (let t = 1; t <= maxDeadline; t++) {
+            const row = document.createElement('div');
+            row.className = 'slot-row';
+            row.innerHTML = `<div class="slot-label">Slot ${t}</div>`;
+            const bar = document.createElement('div');
+            bar.className = 'slot-bar';
+            if (slots[t] !== -1) {
+                bar.classList.add('filled');
+                bar.innerHTML = `💰 Reward: ${slots[t]}`;
+            } else {
+                bar.innerHTML = `⚡ free`;
+            }
+            row.appendChild(bar);
+            timelineDiv.appendChild(row);
+        }
+        
+        // Show which job went where
+        if (selected.length > 0) {
+            const info = document.createElement('div');
+            info.style.marginTop = '15px';
+            info.style.fontSize = '14px';
+            info.style.color = '#2c3e50';
+            info.innerHTML = '<strong>📌 Assignment details:</strong><br>';
+            selected.forEach(job => {
+                info.innerHTML += `Job (deadline ${job.deadline}, reward ${job.reward}) → assigned to slot ${job.slot}<br>`;
+            });
+            timelineDiv.appendChild(info);
+        }
+    }
+
+    function runScheduling() {
+        const { slots, totalReward, selected, maxDeadline } = scheduleJobs(jobs);
+        renderTimeline(slots, maxDeadline, selected);
+        
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `
+            ✅ <strong>Total Reward:</strong> ${totalReward}<br>
+            🧩 <strong>Selected jobs (deadline, reward):</strong> ${selected.map(j => `(${j.deadline},${j.reward})`).join(', ')}
+        `;
+    }
+
+    // Initial display
+    displayJobList();
+    document.getElementById('scheduleBtn').addEventListener('click', runScheduling);
+    
+    // Run automatically on page load
+    runScheduling();
+</script>
+</body>
+</html>
