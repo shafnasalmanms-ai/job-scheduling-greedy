@@ -98,7 +98,3 @@ Selected Jobs = [(2, 100), (2, 80)]
 > Can be optimised to **O(n log n)** using a **Union-Find / Disjoint Set** data structure.
 
 ---
-
-## 📄 License
-
-This project is open for educational use.
