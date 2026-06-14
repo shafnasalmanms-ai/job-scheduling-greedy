@@ -38,7 +38,7 @@ The project includes:
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/job-scheduling-greedy.git
+git clone https://github.com/shafnasalmanms-ai/job-scheduling-greedy.git
 cd job-scheduling-greedy
 ```
 
@@ -98,3 +98,7 @@ Selected Jobs = [(2, 100), (2, 80)]
 > Can be optimised to **O(n log n)** using a **Union-Find / Disjoint Set** data structure.
 
 ---
+
+## 📄 License
+
+This project is open for educational use.
